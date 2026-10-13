@@ -41,6 +41,26 @@ const video=$('video'),chat=$('chat');
 const KEY_STORAGE='shrimp-openai-api-key';
 try{$('key').value=localStorage.getItem(KEY_STORAGE)||''}catch(e){console.warn('Unable to read localStorage',e)}
 $('key').addEventListener('input',()=>{try{const value=$('key').value.trim();if(value)localStorage.setItem(KEY_STORAGE,value);else localStorage.removeItem(KEY_STORAGE)}catch(e){console.warn('Unable to save API key',e)}});
+const SETTINGS_STORAGE='shrimp-settings-v1';
+const SETTINGS_IDS=['model','interval','away','sitlimit','cooldown'];
+try{
+ const saved=JSON.parse(localStorage.getItem(SETTINGS_STORAGE)||'{}');
+ for(const id of SETTINGS_IDS){
+  const element=$(id);
+  if(typeof saved[id]==='string'&&Array.from(element.options||[]).some(o=>o.value===saved[id]) || (id==='model'&&typeof saved[id]==='string'&&saved[id].trim())){
+   element.value=saved[id];
+  }
+ }
+}catch(e){console.warn('Settings load failed',e)}
+function saveSettings(){
+ try{
+  const settings=Object.fromEntries(SETTINGS_IDS.map(id=>[id,$(id).value]));
+  localStorage.setItem(SETTINGS_STORAGE,JSON.stringify(settings));
+ }catch(e){console.warn('Settings save failed',e)}
+}
+for(const id of SETTINGS_IDS){
+ $(id).addEventListener(id==='model'?'input':'change',saveSettings);
+}
 let stream=null,running=false,busy=false,timer=null,nextAt=0,away=false,lastNotify=0,latestImage=null;
 const BREAK_MS=5*60*1000, BREAK_CHECK_SECONDS=30;
 let sittingSince=null, breakRequired=false, breakAwaySince=null, breakLastVerified=null, breakReturnNotified=false;
