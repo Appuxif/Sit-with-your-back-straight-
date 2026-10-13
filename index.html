@@ -249,10 +249,10 @@ function processPresence(state){
  if(breakRequired){
   if(state==='away'){
    // Timer starts with the first confirmed absent photo. Continuous checks must succeed.
-   if(breakAwaySince===null){breakAwaySince=now;breakReturnNotified=false;add('system','🚶 Ты отошёл. Начинаю отсчёт ${breakMinutes()} минут разминки. Проверяю каждые 30 секунд.')}
+   if(breakAwaySince===null){breakAwaySince=now;breakReturnNotified=false;add('system',`🚶 Ты отошёл. Начинаю отсчёт ${breakMinutes()} минут разминки. Проверяю каждые 30 секунд.`)}
    if(breakLastVerified!==null&&now-breakLastVerified>90000){breakAwaySince=now;add('system','⏱️ Был большой пропуск между проверками — начинаю подтверждение отсутствия заново.')}
    breakLastVerified=now;
-   if(now-breakAwaySince>=breakMs()){breakMessage('🎉 Разминка ${breakMinutes()} мин вне кадра подтверждена! Перерыв засчитан, можешь возвращаться.','✅ Разминка завершена','break-done');resetBreakTracking()}
+   if(now-breakAwaySince>=breakMs()){breakMessage(`🎉 Разминка ${breakMinutes()} мин вне кадра подтверждена! Перерыв засчитан, можешь возвращаться.`,'✅ Разминка завершена','break-done');resetBreakTracking()}
   }else if(present){
    if(breakAwaySince!==null){const seconds=Math.floor((now-breakAwaySince)/1000);breakMessage(`🦐 Ты вернулся через ${Math.floor(seconds/60)} мин ${seconds%60} сек. Маловато! Быстро встань и разомнись — нужно ${breakMinutes()} мин вне кадра.`, '🦐 Мало погулял!','break-too-short')}
    breakAwaySince=null;breakLastVerified=null;
@@ -281,7 +281,7 @@ $('clear').onclick=()=>{chat.replaceChildren();messages=[];context=[];persistHis
 $('interval').onchange=()=>{if(running&&!busy&&!away&&!breakRequired)schedule(nextCheckSeconds())};$('away').onchange=()=>{if(running&&!busy&&away&&!breakRequired)schedule(nextCheckSeconds())};$('breakDuration').onchange=()=>{breakLabel();if(breakRequired&&breakAwaySince!==null){breakAwaySince=null;breakLastVerified=null;savePostureSession();add('system','⏱️ Длительность разминки изменена — отсчёт подтверждённого отсутствия начнётся заново.')}};$('sitlimit').onchange=()=>{breakLabel();if(sittingSince!==null&&!breakRequired&&Date.now()-sittingSince>=Number($('sitlimit').value)*60000)processPresence('good')};
 $('form').onsubmit=async e=>{e.preventDefault();const input=$('message'),message=input.value.trim();if(!message||busy)return;input.value='';add('you',message);busy=true;setControls();try{const output=await askAPI([{type:'input_text',text:message}],SYSTEM+'\nОтвет на пользовательское текстовое сообщение — только простой текст.');add('bot',output);context.push({role:'user',content:[{type:'input_text',text:message}]},{role:'assistant',content:[{type:'output_text',text:output}]});context=context.slice(-8)}catch(err){add('system','Ошибка чата: '+err.message)}finally{busy=false;setControls()}};
 window.addEventListener('beforeunload',closeCamera);
-restoreHistory().then(()=>{if(shouldAutoStart()){resumedSession=restorePostureSession();if(breakRequired)add('system','🧘 После перезагрузки обязательная разминка всё ещё нужна! Подтверждение ${breakMinutes()} минут отсутствия начнётся заново.');else if(resumedSession)add('system','⏱️ Восстановил накопленное время сидения. Время закрытой вкладки не учитывается.');$('start').click()}});
+restoreHistory().then(()=>{if(shouldAutoStart()){resumedSession=restorePostureSession();if(breakRequired)add('system',`🧘 После перезагрузки обязательная разминка всё ещё нужна! Подтверждение ${breakMinutes()} минут отсутствия начнётся заново.`);else if(resumedSession)add('system','⏱️ Восстановил накопленное время сидения. Время закрытой вкладки не учитывается.');$('start').click()}});
 </script>
 </body>
 </html>
