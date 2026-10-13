@@ -67,6 +67,30 @@ function shouldAutoStart(){try{return localStorage.getItem(RUNNING_STORAGE)==='t
 let stream=null,running=false,busy=false,timer=null,nextAt=0,away=false,lastNotify=0,latestImage=null;
 const BREAK_MS=5*60*1000, BREAK_CHECK_SECONDS=30;
 let sittingSince=null, breakRequired=false, breakAwaySince=null, breakLastVerified=null, breakReturnNotified=false;
+const POSTURE_SESSION_KEY='shrimp-posture-session-v1';
+let resumedSession=false;
+function savePostureSession(){
+ try{localStorage.setItem(POSTURE_SESSION_KEY,JSON.stringify({
+  sittingElapsedMs:sittingSince===null?null:Math.max(0,Date.now()-sittingSince),
+  breakRequired,
+  savedAt:Date.now()
+ }))}catch(e){console.warn('Posture session save failed',e)}
+}
+function restorePostureSession(){
+ if(!shouldAutoStart())return false;
+ try{
+  const state=JSON.parse(localStorage.getItem(POSTURE_SESSION_KEY)||'null');
+  if(!state||typeof state!=='object')return false;
+  breakRequired=state.breakRequired===true;
+  if(!breakRequired&&Number.isFinite(state.sittingElapsedMs)&&state.sittingElapsedMs>=0)
+   sittingSince=Date.now()-Math.min(state.sittingElapsedMs,24*60*60*1000);
+  else sittingSince=null;
+  // A reload interrupts camera verification: never credit unseen break time.
+  breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;
+  breakLabel();
+  return breakRequired||sittingSince!==null;
+ }catch(e){console.warn('Posture session restore failed',e);return false}
+}
 let context=[]; // Only short text conversation, not all screenshots
 const GAME_KEY='shrimp-rpg-v1',MAX_HP=10,HEAL_MS=60*60*1000;
 let game={hp:MAX_HP,gold:0,nextHealAt:null};
@@ -180,7 +204,7 @@ function breakLabel(){
  else if(sittingSince!==null){const minutes=Math.floor((Date.now()-sittingSince)/60000);label=`Сидишь: ${minutes} мин / ${$('sitlimit').value} мин`}
  $('breakStatus').textContent=label;
 }
-function resetBreakTracking(){sittingSince=null;breakRequired=false;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;breakLabel()}
+function resetBreakTracking(){sittingSince=null;breakRequired=false;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;breakLabel();savePostureSession()}
 function processPresence(state){
  const now=Date.now(), present=state==='good'||state==='bad';
  if(state==='unknown')return;
@@ -206,12 +230,12 @@ function processPresence(state){
   // Do not count time away from the desk as sitting.
   sittingSince=null;
  }
- breakLabel();
+ breakLabel();savePostureSession();
 }
 function nextCheckSeconds(){return breakRequired?BREAK_CHECK_SECONDS:(away?Number($('away').value):Number($('interval').value))}
 function notifyBad(text){const now=Date.now();if(now-lastNotify<Number($('cooldown').value)*1000)return;lastNotify=now;if('Notification' in window&&Notification.permission==='granted'){try{new Notification('🦐 Выпрямись!',{body:text||'Проверь осанку',tag:'posture-alert'})}catch(e){console.warn('Notification:',e)}}}
-async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=true;setControls();cancelTimer();try{let img;try{await openCamera();img=capture();}catch(cameraError){const unavailable=['NotReadableError','TrackStartError','AbortError','NotFoundError','OverconstrainedError'].includes(cameraError.name);if(unavailable){add('system','📷 Камера недоступна (возможно, занята звонком). Пропускаю проверку; попробую снова по расписанию.');status('Камера занята — проверка пропущена');if(breakRequired){breakAwaySince=null;breakLastVerified=null;add('system','⏸️ Не могу подтвердить непрерывный перерыв без камеры. Отсчёт отсутствия сброшен.')}return;}throw cameraError;}finally{closeCamera();}latestImage=img;add('you','Проверка осанки 📸',img);status('Анализирую снимок…');const raw=await askAPI([{type:'input_text',text:'Проверь осанку на этом фото. Верни JSON по инструкции.'},{type:'input_image',image_url:img,detail:'low'}],SYSTEM);const result=parsePhoto(raw);away=result.state==='away';processPresence(result.state);const badge={good:'✅',bad:'🚨',away:'🚶',unknown:'🤔'}[result.state];const gameText=awardGame(result.state,automatic&&running,rewardSeconds);add('bot',badge+' '+(result.comment||result.issue||result.state)+(gameText?'\n'+gameText:''));if(result.state==='bad')notifyBad(result.comment||result.issue);$('summary').textContent={good:'✅ Поза выглядит нормально',bad:'🚨 Обнаружена плохая осанка',away:'🚶 Никого нет — проверки реже',unknown:'🤔 Невозможно уверенно оценить'}[result.state];status(away?'Отошёл от камеры':running?'Наблюдение активно':'Ручная проверка завершена');}catch(e){add('system','Ошибка: '+e.message);status('Ошибка проверки');}finally{closeCamera();busy=false;setControls();if(running)schedule(nextCheckSeconds())}}
-$('start').onclick=async()=>{if(running)return;try{if(!$('key').value.trim())throw Error('Сначала введи API key');running=true;saveRunning(true);away=false;resetBreakTracking();status('Наблюдение активно');setControls();await checkPhoto();}catch(e){add('system','Не удалось запустить: '+e.message);running=false;saveRunning(false);setControls();closeCamera()}};
+async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=true;setControls();cancelTimer();try{let img;try{await openCamera();img=capture();}catch(cameraError){const unavailable=['NotReadableError','TrackStartError','AbortError','NotFoundError','OverconstrainedError'].includes(cameraError.name);if(unavailable){add('system','📷 Камера недоступна (возможно, занята звонком). Пропускаю проверку; попробую снова по расписанию.');status('Камера занята — проверка пропущена');if(breakRequired){breakAwaySince=null;breakLastVerified=null;savePostureSession();add('system','⏸️ Не могу подтвердить непрерывный перерыв без камеры. Отсчёт отсутствия сброшен.')}return;}throw cameraError;}finally{closeCamera();}latestImage=img;add('you','Проверка осанки 📸',img);status('Анализирую снимок…');const raw=await askAPI([{type:'input_text',text:'Проверь осанку на этом фото. Верни JSON по инструкции.'},{type:'input_image',image_url:img,detail:'low'}],SYSTEM);const result=parsePhoto(raw);away=result.state==='away';processPresence(result.state);const badge={good:'✅',bad:'🚨',away:'🚶',unknown:'🤔'}[result.state];const gameText=awardGame(result.state,automatic&&running,rewardSeconds);add('bot',badge+' '+(result.comment||result.issue||result.state)+(gameText?'\n'+gameText:''));if(result.state==='bad')notifyBad(result.comment||result.issue);$('summary').textContent={good:'✅ Поза выглядит нормально',bad:'🚨 Обнаружена плохая осанка',away:'🚶 Никого нет — проверки реже',unknown:'🤔 Невозможно уверенно оценить'}[result.state];status(away?'Отошёл от камеры':running?'Наблюдение активно':'Ручная проверка завершена');}catch(e){add('system','Ошибка: '+e.message);status('Ошибка проверки');}finally{closeCamera();busy=false;setControls();if(running)schedule(nextCheckSeconds())}}
+$('start').onclick=async()=>{if(running)return;try{if(!$('key').value.trim())throw Error('Сначала введи API key');running=true;saveRunning(true);away=false;if(!resumedSession)resetBreakTracking();resumedSession=false;status('Наблюдение активно');setControls();await checkPhoto();}catch(e){add('system','Не удалось запустить: '+e.message);running=false;saveRunning(false);setControls();closeCamera()}};
 $('stop').onclick=()=>{running=false;saveRunning(false);resetBreakTracking();cancelTimer();closeCamera();status('Остановлено');$('summary').textContent='Наблюдение остановлено';setControls();add('system','Наблюдение остановлено.')};
 $('check').onclick=()=>checkPhoto();
 $('notify').onclick=async()=>{if(!('Notification' in window)){add('system','Этот браузер не поддерживает уведомления.');return}try{const result=await Notification.requestPermission();add('system',result==='granted'?'Уведомления разрешены 🔔':'Уведомления не разрешены: '+result)}catch(e){add('system','Не удалось запросить разрешение: '+e.message)}};
@@ -219,7 +243,7 @@ $('clear').onclick=()=>{chat.replaceChildren();messages=[];context=[];persistHis
 $('interval').onchange=()=>{if(running&&!busy&&!away&&!breakRequired)schedule(nextCheckSeconds())};$('away').onchange=()=>{if(running&&!busy&&away&&!breakRequired)schedule(nextCheckSeconds())};$('sitlimit').onchange=()=>{breakLabel();if(sittingSince!==null&&!breakRequired&&Date.now()-sittingSince>=Number($('sitlimit').value)*60000)processPresence('good')};
 $('form').onsubmit=async e=>{e.preventDefault();const input=$('message'),message=input.value.trim();if(!message||busy)return;input.value='';add('you',message);busy=true;setControls();try{const output=await askAPI([{type:'input_text',text:message}],SYSTEM+'\nОтвет на пользовательское текстовое сообщение — только простой текст.');add('bot',output);context.push({role:'user',content:[{type:'input_text',text:message}]},{role:'assistant',content:[{type:'output_text',text:output}]});context=context.slice(-8)}catch(err){add('system','Ошибка чата: '+err.message)}finally{busy=false;setControls()}};
 window.addEventListener('beforeunload',closeCamera);
-restoreHistory().then(()=>{if(shouldAutoStart()){$('start').click()}});
+restoreHistory().then(()=>{if(shouldAutoStart()){resumedSession=restorePostureSession();if(breakRequired)add('system','🧘 После перезагрузки обязательная разминка всё ещё нужна! Подтверждение 5 минут отсутствия начнётся заново.');else if(resumedSession)add('system','⏱️ Восстановил накопленное время сидения. Время закрытой вкладки не учитывается.');$('start').click()}});
 </script>
 </body>
 </html>
