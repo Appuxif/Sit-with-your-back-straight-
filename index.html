@@ -174,7 +174,7 @@ function awardGame(state,eligible,seconds){
   saveGame();renderGame();
   return '💔 Твоё здоровье пострадало: −½ сердца. Сейчас '+game.hp/2+'/5 ❤️.';
  }
- if(state==='good'&&eligible&&!breakRequired){
+ if(state==='good'&&eligible){
   const amount=Math.floor(seconds/30)*5;
   if(amount>0){game.gold+=amount;saveGame();renderGame();return '🪙 Добавил тебе на счёт '+amount+' золотых. Всего: '+game.gold+'.'}
  }
