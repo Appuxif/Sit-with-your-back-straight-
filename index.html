@@ -110,30 +110,17 @@ function restorePostureSession(){
  }catch(e){console.warn('Posture session restore failed',e);return false}
 }
 let context=[]; // Only short text conversation, not all screenshots
-const GAME_KEY='shrimp-rpg-v1',MAX_HP=10,HEAL_MS=60*60*1000;
-let game={hp:MAX_HP,gold:0,nextHealAt:null};
+const GAME_KEY='shrimp-rpg-v1',MAX_HP=10;
+let game={hp:MAX_HP,gold:0};
 try{
  const stored=JSON.parse(localStorage.getItem(GAME_KEY)||'null');
  if(stored&&Number.isFinite(stored.hp)&&Number.isFinite(stored.gold)){
   game.hp=Math.max(0,Math.min(MAX_HP,Math.floor(stored.hp)));
   game.gold=Math.max(0,Math.floor(stored.gold));
-  game.nextHealAt=Number.isFinite(stored.nextHealAt)?stored.nextHealAt:null;
  }
 }catch(e){console.warn('Game load failed',e)}
 function saveGame(){try{localStorage.setItem(GAME_KEY,JSON.stringify(game))}catch(e){console.warn('Game save failed',e)}}
-function healGame(){
- if(game.hp>=MAX_HP){game.nextHealAt=null;return}
- const now=Date.now();
- if(!game.nextHealAt)game.nextHealAt=now+HEAL_MS;
- if(now>=game.nextHealAt){
-  const units=Math.floor((now-game.nextHealAt)/HEAL_MS)+1;
-  game.hp=Math.min(MAX_HP,game.hp+units*2);
-  game.nextHealAt=game.hp===MAX_HP?null:game.nextHealAt+units*HEAL_MS;
-  saveGame();
- }
-}
 function renderGame(){
- healGame();
  $('hearts').replaceChildren();
  for(let i=0;i<5;i++){
   const heart=document.createElement('span');heart.className='heart';heart.textContent='♥';
@@ -146,8 +133,7 @@ function renderGame(){
  $('shopGold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
  $('buyPotion').disabled=game.hp===MAX_HP||game.gold<100;
  $('shopHint').textContent=game.hp===MAX_HP?'Здоровье уже полное':game.gold<100?'Не хватает '+(100-game.gold)+' золотых':'Восстановит '+Math.min(2,MAX_HP-game.hp)/2+' ❤️';
- const seconds=game.nextHealAt?Math.max(0,Math.ceil((game.nextHealAt-Date.now())/1000)):0;
- $('healStatus').textContent=game.hp===MAX_HP?'❤️ Здоровье полное':`❤️ ${game.hp/2}/5 · +1 сердце через ${Math.floor(seconds/60)}м ${seconds%60}с`;
+ $('healStatus').textContent=game.hp===MAX_HP?'❤️ Здоровье полное':`❤️ ${game.hp/2}/5 · восстановление только зельями`;
 }
 function setShopOpen(open){
  document.body.classList.toggle('shop-open',open);
@@ -159,19 +145,15 @@ $('shopClose').onclick=()=>setShopOpen(false);
 $('shopOverlay').onclick=()=>setShopOpen(false);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('shop-open'))setShopOpen(false)});
 $('buyPotion').onclick=()=>{
- healGame();
  if(game.hp>=MAX_HP||game.gold<100){renderGame();return}
  game.gold-=100;
  game.hp=Math.min(MAX_HP,game.hp+2);
- if(game.hp===MAX_HP)game.nextHealAt=null;
  saveGame();renderGame();
  add('bot','🧪 Глоть-глоть! Креветка выпила зелье и восстановила здоровье на '+Math.min(1,(MAX_HP-(game.hp-2))/2)+' ❤️. Потрачено 100 золотых. Осталось '+game.gold+' 🪙.');
 };
 function awardGame(state,eligible,seconds){
- healGame();
  if(state==='bad'){
   game.hp=Math.max(0,game.hp-1);
-  if(game.hp<MAX_HP&&!game.nextHealAt)game.nextHealAt=Date.now()+HEAL_MS;
   saveGame();renderGame();
   return '💔 Твоё здоровье пострадало: −½ сердца. Сейчас '+game.hp/2+'/5 ❤️.';
  }
@@ -182,7 +164,6 @@ function awardGame(state,eligible,seconds){
  renderGame();return '';
 }
 renderGame();
-setInterval(renderGame,1000);
 const HISTORY_LIMIT=20;
 const DB_NAME='shrimp-chat-history', DB_STORE='chat';
 let messages=[],historyReady=false,writeChain=Promise.resolve();
