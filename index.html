@@ -286,7 +286,15 @@ async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=t
  if(checkingBreak){
    if(result.state==='away'&&breakRequired)add('bot',`🚶 Тебя нет в кадре — отлично! Продолжай разминку, нужно ${breakMinutes()} минут.`);
    else if(result.state==='unknown')add('bot','🤔 Не могу определить, отошёл ли ты. Перерыв пока не засчитывается.');
-   else if(result.state!=='away'&&breakRequired&&breakAwaySince===null)breakReminder();
+   else if(result.state!=='away'&&result.state!=='unknown'&&breakRequired&&breakAwaySince===null){
+ if(automatic&&running){
+  const fine=Math.min(20,game.gold);
+  game.gold-=fine;
+  saveGame();renderGame();
+  breakReminder();
+  add('bot','💸 Штраф за сидение во время разминки: −'+fine+' золотых. Осталось '+game.gold+' 🪙.');
+ }else breakReminder();
+}
  }else{
    const badge={good:'✅',bad:'🚨',away:'🚶',unknown:'🤔'}[result.state];
    const gameText=awardGame(result.state,automatic&&running,rewardSeconds);
