@@ -84,6 +84,7 @@ const BREAK_CHECK_SECONDS=30;
 function breakMinutes(){return Number($('breakDuration').value)}
 function breakMs(){return breakMinutes()*60*1000}
 let sittingSince=null, breakRequired=false, breakAwaySince=null, breakLastVerified=null, breakReturnNotified=false;
+let lastBreakReminder=0;
 const POSTURE_SESSION_KEY='shrimp-posture-session-v1';
 let resumedSession=false;
 function savePostureSession(){
@@ -242,7 +243,7 @@ function breakLabel(){
  else if(sittingSince!==null){const minutes=Math.floor((Date.now()-sittingSince)/60000);label=`Сидишь: ${minutes} мин / ${$('sitlimit').value} мин`}
  $('breakStatus').textContent=label;
 }
-function resetBreakTracking(){sittingSince=null;breakRequired=false;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;breakLabel();savePostureSession()}
+function resetBreakTracking(){sittingSince=null;breakRequired=false;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;lastBreakReminder=0;breakLabel();savePostureSession()}
 function processPresence(state){
  const now=Date.now(), present=state==='good'||state==='bad';
  if(state==='unknown')return;
@@ -256,7 +257,7 @@ function processPresence(state){
   }else if(present){
    if(breakAwaySince!==null){const seconds=Math.floor((now-breakAwaySince)/1000);breakMessage(`🦐 Ты вернулся через ${Math.floor(seconds/60)} мин ${seconds%60} сек. Маловато! Быстро встань и разомнись — нужно ${breakMinutes()} мин вне кадра.`, '🦐 Мало погулял!','break-too-short')}
    breakAwaySince=null;breakLastVerified=null;
-   // Keep requesting a break until five minutes away are verified.
+   // Keep requesting a break until the configured duration away is verified.
   }
  }else if(present){
   if(sittingSince===null)sittingSince=now;
@@ -270,9 +271,28 @@ function processPresence(state){
  }
  breakLabel();savePostureSession();
 }
+function breakReminder(){
+ const message=`🦐 Хватит сидеть! Встань и разомнись ${breakMinutes()} минут. Я жду, когда ты отойдёшь от камеры.`;
+ add('bot',message);
+ if(Date.now()-lastBreakReminder>=2*60*1000){lastBreakReminder=Date.now();if('Notification' in window&&Notification.permission==='granted')try{new Notification('🧘 Время размяться!',{body:message,tag:'break-reminder'})}catch(e){console.warn('Notification:',e)}}
+}
 function nextCheckSeconds(){return breakRequired?BREAK_CHECK_SECONDS:(away?Number($('away').value):Number($('interval').value))}
 function notifyBad(text){const now=Date.now();if(now-lastNotify<Number($('cooldown').value)*1000)return;lastNotify=now;if('Notification' in window&&Notification.permission==='granted'){try{new Notification('🦐 Выпрямись!',{body:text||'Проверь осанку',tag:'posture-alert'})}catch(e){console.warn('Notification:',e)}}}
-async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=true;setControls();cancelTimer();try{let img;try{await openCamera();img=capture();}catch(cameraError){const unavailable=['NotReadableError','TrackStartError','AbortError','NotFoundError','OverconstrainedError'].includes(cameraError.name);if(unavailable){add('system','📷 Камера недоступна (возможно, занята звонком). Пропускаю проверку; попробую снова по расписанию.');status('Камера занята — проверка пропущена');if(breakRequired){breakAwaySince=null;breakLastVerified=null;savePostureSession();add('system','⏸️ Не могу подтвердить непрерывный перерыв без камеры. Отсчёт отсутствия сброшен.')}return;}throw cameraError;}finally{closeCamera();}latestImage=img;add('you','Проверка осанки 📸',img);status('Анализирую снимок…');const raw=await askAPI([{type:'input_text',text:'Проверь осанку на этом фото. Верни JSON по инструкции.'},{type:'input_image',image_url:img,detail:'low'}],SYSTEM);const result=parsePhoto(raw);away=result.state==='away';processPresence(result.state);const badge={good:'✅',bad:'🚨',away:'🚶',unknown:'🤔'}[result.state];const gameText=awardGame(result.state,automatic&&running,rewardSeconds);add('bot',badge+' '+(result.comment||result.issue||result.state)+(gameText?'\n'+gameText:''));if(result.state==='bad')notifyBad(result.comment||result.issue);$('summary').textContent={good:'✅ Поза выглядит нормально',bad:'🚨 Обнаружена плохая осанка',away:'🚶 Никого нет — проверки реже',unknown:'🤔 Невозможно уверенно оценить'}[result.state];status(away?'Отошёл от камеры':running?'Наблюдение активно':'Ручная проверка завершена');}catch(e){add('system','Ошибка: '+e.message);status('Ошибка проверки');}finally{closeCamera();busy=false;setControls();if(running)schedule(nextCheckSeconds())}}
+async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=true;setControls();cancelTimer();try{let img;try{await openCamera();img=capture();}catch(cameraError){const unavailable=['NotReadableError','TrackStartError','AbortError','NotFoundError','OverconstrainedError'].includes(cameraError.name);if(unavailable){add('system','📷 Камера недоступна (возможно, занята звонком). Пропускаю проверку; попробую снова по расписанию.');status('Камера занята — проверка пропущена');if(breakRequired){breakAwaySince=null;breakLastVerified=null;savePostureSession();add('system','⏸️ Не могу подтвердить непрерывный перерыв без камеры. Отсчёт отсутствия сброшен.')}return;}throw cameraError;}finally{closeCamera();}latestImage=img;add('you','Проверка осанки 📸',img);status('Анализирую снимок…');const checkingBreak=breakRequired;
+ const task=checkingBreak?'Сейчас обязательная разминка. Определи, есть ли человек в кадре. Верни JSON с state=away если человека нет, state=good если человек виден, state=unknown если не уверен. Не оценивай осанку.':'Проверь осанку на этом фото. Верни JSON по инструкции.';
+ const raw=await askAPI([{type:'input_text',text:task},{type:'input_image',image_url:img,detail:'low'}],SYSTEM+(checkingBreak?' Во время обязательной разминки только определяй наличие человека: away, good или unknown; не оценивай осанку.':''));
+ const result=parsePhoto(raw);away=result.state==='away';
+ processPresence(result.state);
+ if(checkingBreak){
+   if(result.state==='away'&&breakRequired)add('bot',`🚶 Тебя нет в кадре — отлично! Продолжай разминку, нужно ${breakMinutes()} минут.`);
+   else if(result.state==='unknown')add('bot','🤔 Не могу определить, отошёл ли ты. Перерыв пока не засчитывается.');
+   else if(result.state!=='away'&&breakRequired&&breakAwaySince===null)breakReminder();
+ }else{
+   const badge={good:'✅',bad:'🚨',away:'🚶',unknown:'🤔'}[result.state];
+   const gameText=awardGame(result.state,automatic&&running,rewardSeconds);
+   add('bot',badge+' '+(result.comment||result.issue||result.state)+(gameText?'\n'+gameText:''));
+   if(result.state==='bad')notifyBad(result.comment||result.issue);
+ }$('summary').textContent=breakRequired?'🧘 Идёт обязательная разминка':{good:'✅ Поза выглядит нормально',bad:'🚨 Обнаружена плохая осанка',away:'🚶 Никого нет — проверки реже',unknown:'🤔 Невозможно уверенно оценить'}[result.state];status(away?'Отошёл от камеры':running?'Наблюдение активно':'Ручная проверка завершена');}catch(e){add('system','Ошибка: '+e.message);status('Ошибка проверки');}finally{closeCamera();busy=false;setControls();if(running)schedule(nextCheckSeconds())}}
 $('start').onclick=async()=>{if(running)return;try{if(!$('key').value.trim())throw Error('Сначала введи API key');running=true;saveRunning(true);away=false;if(!resumedSession)resetBreakTracking();resumedSession=false;status('Наблюдение активно');setControls();await checkPhoto();}catch(e){add('system','Не удалось запустить: '+e.message);running=false;saveRunning(false);setControls();closeCamera()}};
 $('stop').onclick=()=>{running=false;saveRunning(false);resetBreakTracking();cancelTimer();closeCamera();status('Остановлено');$('summary').textContent='Наблюдение остановлено';setControls();add('system','Наблюдение остановлено.')};
 $('check').onclick=()=>checkPhoto();
