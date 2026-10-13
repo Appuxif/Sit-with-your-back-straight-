@@ -5,7 +5,7 @@
 <title>🦐 Креветка-контроль</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color-scheme:dark;--bg:#0b0d14;--panel:#151924;--line:#2b3040;--text:#e9edf6;--muted:#9da6b8;--accent:#a58bfa;--danger:#ff8f9b;--green:#78ddae}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}.app{display:grid;grid-template-columns:325px minmax(0,1fr);height:100dvh;overflow:hidden}aside{padding:21px;border-right:1px solid var(--line);overflow-y:auto;min-height:0;height:100%;background:#11141d}.brand{font-size:24px;font-weight:800;margin-bottom:5px}.sub{font-size:13px;color:var(--muted);margin-bottom:23px}.field{margin:17px 0}.field label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:7px}input,select{width:100%;border:1px solid #34394a;background:#1c2030;color:var(--text);padding:11px 12px;border-radius:10px;font:inherit}input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}button{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-weight:650;background:#303548;color:var(--text);cursor:pointer}button:hover{filter:brightness(1.14)}button:disabled{opacity:.5;cursor:not-allowed}.primary{background:var(--accent);color:#151022}.danger{background:#4c2933;color:#ffbfc8}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.buttons button:first-child{grid-column:span 2}.camera{background:#070911;border:1px solid var(--line);border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;margin:14px 0}.camera video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.small{font-size:12px;color:var(--muted);line-height:1.5}.pill{font-size:12px;background:#252a39;padding:6px 9px;border-radius:30px;display:inline-block}.status-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:12px 0}.status{font-weight:600;font-size:13px}main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}.chat-head{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}.chat-head strong{font-size:17px}.chat{flex:1;min-height:0;overflow-y:auto;padding:22px max(16px,calc((100% - 850px)/2));display:flex;flex-direction:column;gap:18px}.entry{display:flex;gap:11px;max-width:100%;align-items:flex-start}.avatar{width:33px;height:33px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;background:#34304b}.entry.you .avatar{background:#243842}.bubble{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:12px 15px;max-width:min(85%,660px);min-width:0;white-space:pre-wrap;line-height:1.47;font-size:14px;overflow-wrap:anywhere}.entry.you .bubble{background:#1a2630}.meta{font-size:11px;color:var(--muted);margin-bottom:6px}.shot{display:block;max-width:100%;width:min(360px,100%);border-radius:9px;margin-top:8px;cursor:zoom-in}.composer{display:flex;gap:9px;padding:15px 24px;border-top:1px solid var(--line);background:var(--bg)}.composer input{flex:1}.composer button{min-width:105px}.note{font-size:11px;color:var(--muted);margin:12px 0}code{color:#d9caff}@media(max-width:800px){.app{display:flex;flex-direction:column;height:100dvh}aside{padding:12px 16px;max-height:42dvh;border-right:0;border-bottom:1px solid var(--line)}.brand{font-size:19px}.sub{margin-bottom:8px}.camera{display:none}.field{margin:9px 0}.chat-head{padding:13px 16px}.chat{padding:15px}.composer{padding:10px}.bubble{max-width:94%}} 
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}.app{display:grid;grid-template-columns:325px minmax(0,1fr);height:100dvh;overflow:hidden}aside{padding:21px;border-right:1px solid var(--line);overflow-y:auto;min-height:0;height:100%;background:#11141d}.brand{font-size:24px;font-weight:800;margin-bottom:5px}.sub{font-size:13px;color:var(--muted);margin-bottom:23px}.field{margin:17px 0}.field label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:7px}input,select{width:100%;border:1px solid #34394a;background:#1c2030;color:var(--text);padding:11px 12px;border-radius:10px;font:inherit}input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}button{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-weight:650;background:#303548;color:var(--text);cursor:pointer}button:hover{filter:brightness(1.14)}button:disabled{opacity:.5;cursor:not-allowed}.primary{background:var(--accent);color:#151022}.danger{background:#4c2933;color:#ffbfc8}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.buttons button:first-child{grid-column:span 2}.camera{background:#070911;border:1px solid var(--line);border-radius:12px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;margin:14px 0}.camera video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.small{font-size:12px;color:var(--muted);line-height:1.5}.pill{font-size:12px;background:#252a39;padding:6px 9px;border-radius:30px;display:inline-block}.status-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:12px 0}.status{font-weight:600;font-size:13px}main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}.chat-head{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}.chat-head strong{font-size:17px}.chat{flex:1;min-height:0;overflow-y:auto;padding:22px max(16px,calc((100% - 850px)/2));display:flex;flex-direction:column;gap:18px}.entry{display:flex;gap:11px;max-width:100%;align-items:flex-start}.avatar{width:33px;height:33px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;background:#34304b}.entry.you .avatar{background:#243842}.bubble{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:12px 15px;max-width:min(85%,660px);min-width:0;white-space:pre-wrap;line-height:1.47;font-size:14px;overflow-wrap:anywhere}.entry.you .bubble{background:#1a2630}.meta{font-size:11px;color:var(--muted);margin-bottom:6px}.shot{display:block;max-width:100%;width:min(360px,100%);border-radius:9px;margin-top:8px;cursor:zoom-in}.composer{display:flex;gap:9px;padding:15px 24px;border-top:1px solid var(--line);background:var(--bg)}.composer input{flex:1}.composer button{min-width:105px}.game{background:#1b2030;border:1px solid var(--line);padding:13px;border-radius:12px;margin:14px 0}.hearts{display:flex;gap:5px;align-items:center;margin:9px 0}.heart{position:relative;color:#434758;font-size:29px;line-height:1}.heart .fill{position:absolute;left:0;top:0;color:#ff7189;overflow:hidden;white-space:nowrap}.gold{font-weight:750;color:#ffd166;font-size:20px}.note{font-size:11px;color:var(--muted);margin:12px 0}code{color:#d9caff}@media(max-width:800px){.app{display:flex;flex-direction:column;height:100dvh}aside{padding:12px 16px;max-height:42dvh;border-right:0;border-bottom:1px solid var(--line)}.brand{font-size:19px}.sub{margin-bottom:8px}.camera{display:none}.field{margin:9px 0}.chat-head{padding:13px 16px}.chat{padding:15px}.composer{padding:10px}.bubble{max-width:94%}} 
 </style>
 </head>
 <body>
@@ -14,6 +14,7 @@
  <div class="brand">🦐 Креветка-контроль</div><div class="sub">ИИ следит, чтобы ты не превратился в знак вопроса.</div>
  <div class="field"><label for="key">OpenAI API key (сохраняется в браузере)</label><input id="key" type="password" autocomplete="off" placeholder="sk-..."></div>
  <div class="field"><label for="model">Модель</label><input id="model" value="gpt-6-luna" spellcheck="false"></div>
+ <div class="game"><div style="font-weight:700">🎮 Креветка RPG</div><div class="hearts" id="hearts" aria-label="Здоровье"></div><div class="small" id="healStatus"></div><div class="gold" id="gold">🪙 0</div><div class="small">+5 золота за 30 сек хорошей осанки</div></div>
  <div class="camera"><video id="video" autoplay playsinline muted></video></div>
  <div class="status-row"><span class="status" id="status">● Не запущено</span><span class="pill" id="next">—</span></div>
  <div class="buttons"><button id="start" class="primary">▶ Запустить наблюдение</button><button id="check">📸 Проверить сейчас</button><button id="stop" class="danger" disabled>■ Стоп</button></div>
@@ -44,6 +45,58 @@ let stream=null,running=false,busy=false,timer=null,nextAt=0,away=false,lastNoti
 const BREAK_MS=5*60*1000, BREAK_CHECK_SECONDS=30;
 let sittingSince=null, breakRequired=false, breakAwaySince=null, breakLastVerified=null, breakReturnNotified=false;
 let context=[]; // Only short text conversation, not all screenshots
+const GAME_KEY='shrimp-rpg-v1',MAX_HP=10,HEAL_MS=60*60*1000;
+let game={hp:MAX_HP,gold:0,nextHealAt:null};
+try{
+ const stored=JSON.parse(localStorage.getItem(GAME_KEY)||'null');
+ if(stored&&Number.isFinite(stored.hp)&&Number.isFinite(stored.gold)){
+  game.hp=Math.max(0,Math.min(MAX_HP,Math.floor(stored.hp)));
+  game.gold=Math.max(0,Math.floor(stored.gold));
+  game.nextHealAt=Number.isFinite(stored.nextHealAt)?stored.nextHealAt:null;
+ }
+}catch(e){console.warn('Game load failed',e)}
+function saveGame(){try{localStorage.setItem(GAME_KEY,JSON.stringify(game))}catch(e){console.warn('Game save failed',e)}}
+function healGame(){
+ if(game.hp>=MAX_HP){game.nextHealAt=null;return}
+ const now=Date.now();
+ if(!game.nextHealAt)game.nextHealAt=now+HEAL_MS;
+ if(now>=game.nextHealAt){
+  const units=Math.floor((now-game.nextHealAt)/HEAL_MS)+1;
+  game.hp=Math.min(MAX_HP,game.hp+units*2);
+  game.nextHealAt=game.hp===MAX_HP?null:game.nextHealAt+units*HEAL_MS;
+  saveGame();
+ }
+}
+function renderGame(){
+ healGame();
+ $('hearts').replaceChildren();
+ for(let i=0;i<5;i++){
+  const heart=document.createElement('span');heart.className='heart';heart.textContent='♥';
+  const fill=document.createElement('span');fill.className='fill';fill.textContent='♥';
+  fill.style.width=(Math.max(0,Math.min(2,game.hp-i*2))/2*100)+'%';
+  heart.append(fill);$('hearts').append(heart);
+ }
+ $('hearts').setAttribute('aria-label','Здоровье '+(game.hp/2)+' из 5');
+ $('gold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
+ const seconds=game.nextHealAt?Math.max(0,Math.ceil((game.nextHealAt-Date.now())/1000)):0;
+ $('healStatus').textContent=game.hp===MAX_HP?'❤️ Здоровье полное':`❤️ ${game.hp/2}/5 · +1 сердце через ${Math.floor(seconds/60)}м ${seconds%60}с`;
+}
+function awardGame(state,eligible,seconds){
+ healGame();
+ if(state==='bad'){
+  game.hp=Math.max(0,game.hp-1);
+  if(game.hp<MAX_HP&&!game.nextHealAt)game.nextHealAt=Date.now()+HEAL_MS;
+  saveGame();renderGame();
+  return '💔 Твоё здоровье пострадало: −½ сердца. Сейчас '+game.hp/2+'/5 ❤️.';
+ }
+ if(state==='good'&&eligible&&!breakRequired){
+  const amount=Math.floor(seconds/30)*5;
+  if(amount>0){game.gold+=amount;saveGame();renderGame();return '🪙 Добавил тебе на счёт '+amount+' золотых. Всего: '+game.gold+'.'}
+ }
+ renderGame();return '';
+}
+renderGame();
+setInterval(renderGame,1000);
 const HISTORY_LIMIT=20;
 const DB_NAME='shrimp-chat-history', DB_STORE='chat';
 let messages=[],historyReady=false,writeChain=Promise.resolve();
@@ -52,7 +105,7 @@ const historyDB=typeof indexedDB!=='undefined'?openHistoryDB().catch(e=>{console
 async function dbRead(){const db=await historyDB;if(!db)return [];return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly');const request=tx.objectStore(DB_STORE).get('messages');request.onsuccess=()=>resolve(request.result||[]);request.onerror=()=>reject(request.error)})}
 async function dbWrite(snapshot){const db=await historyDB;if(!db)return;return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(snapshot,'messages');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}
 function persistHistory(){if(!historyReady)return;const snapshot=messages.slice();writeChain=writeChain.then(()=>dbWrite(snapshot)).catch(e=>console.warn('Could not save chat history',e))}
-const SYSTEM=`Ты — дружелюбный, слегка язвительный русскоязычный инспектор осанки по имени Креветка-контроль. Оцениваешь фотографии пользователя за рабочим столом. Не делай медицинских диагнозов. Учитывай, что одно изображение не позволяет точно судить об изгибе позвоночника. В ответах на ФОТО возвращай ТОЛЬКО корректный JSON без markdown: {"state":"good|bad|away|unknown","issue":"кратко, что не так (или пустая строка)","comment":"короткое живое сообщение на русском, максимум 2 предложения"}. away — в кадре нет человека; unknown — не видно позу или не уверен; bad — явно видна плохая поза (голова на руке, заметный перекос, сильный наклон, сгорбленность). Не придирайся к обычным небольшим изменениям положения. При good можно похвалить. При away сообщи, что человек отошёл. Для обычных ТЕКСТОВЫХ сообщений отвечай естественно, кратко, без JSON, и учитывай предыдущие текстовые реплики.`;
+const SYSTEM=`Ты — дружелюбный, слегка язвительный русскоязычный инспектор осанки по имени Креветка-контроль. Оцениваешь фотографии пользователя за рабочим столом. Не делай медицинских диагнозов. Учитывай, что одно изображение не позволяет точно судить об изгибе позвоночника. В ответах на ФОТО возвращай ТОЛЬКО корректный JSON без markdown: {"state":"good|bad|away|unknown","issue":"кратко, что не так (или пустая строка)","comment":"короткое живое сообщение на русском, максимум 2 предложения"}. away — в кадре нет человека; unknown — не видно позу или не уверен; bad — явно видна плохая поза (голова на руке, заметный перекос, сильный наклон, сгорбленность). Не придирайся к обычным небольшим изменениям положения. При good можно похвалить. При away сообщи, что человек отошёл. В игре у пользователя 5 сердец (по две половинки) и золото. За подтверждённую плохую осанку снимается половинка сердца, за хорошую осанку при плановой проверке начисляется по 5 золотых за каждые 30 секунд планового интервала. Не придумывай изменения баланса в своём комментарии: точную награду или штраф добавит приложение после анализа. Для обычных ТЕКСТОВЫХ сообщений отвечай естественно, кратко, без JSON, и учитывай предыдущие текстовые реплики.`;
 function time(){return new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 function add(role,text,img=null,restored=null){
  const msg=restored||{role,text,img,at:Date.now()};
@@ -86,7 +139,7 @@ async function restoreHistory(){
 function status(msg){$('status').textContent='● '+msg}
 function setControls(){ $('start').disabled=running; $('stop').disabled=!running; $('check').disabled=busy; }
 function cancelTimer(){if(timer){clearTimeout(timer);timer=null}nextAt=0;$('next').textContent='—'}
-function schedule(seconds){cancelTimer();if(!running)return;nextAt=Date.now()+seconds*1000;$('next').textContent='через '+seconds+' сек';timer=setTimeout(()=>{timer=null;checkPhoto()},seconds*1000)}
+function schedule(seconds){cancelTimer();if(!running)return;nextAt=Date.now()+seconds*1000;$('next').textContent='через '+seconds+' сек';timer=setTimeout(()=>{timer=null;checkPhoto(true,seconds)},seconds*1000)}
 setInterval(()=>{breakLabel();if(!nextAt)return;const s=Math.max(0,Math.ceil((nextAt-Date.now())/1000));$('next').textContent=s>=60?'через '+Math.floor(s/60)+'м '+(s%60)+'с':'через '+s+' сек'},1000);
 async function openCamera(){if(stream)return; if(!navigator.mediaDevices?.getUserMedia)throw Error('Камера недоступна. Открой страницу через localhost или HTTPS.');stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:960},height:{ideal:720},facingMode:'user'},audio:false});video.srcObject=stream;await video.play();if(video.readyState<2)await new Promise(r=>video.addEventListener('loadeddata',r,{once:true}));}
 function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}video.pause();video.srcObject=null;}
@@ -134,7 +187,7 @@ function processPresence(state){
 }
 function nextCheckSeconds(){return breakRequired?BREAK_CHECK_SECONDS:(away?Number($('away').value):Number($('interval').value))}
 function notifyBad(text){const now=Date.now();if(now-lastNotify<Number($('cooldown').value)*1000)return;lastNotify=now;if('Notification' in window&&Notification.permission==='granted'){try{new Notification('🦐 Выпрямись!',{body:text||'Проверь осанку',tag:'posture-alert'})}catch(e){console.warn('Notification:',e)}}}
-async function checkPhoto(){if(busy)return;busy=true;setControls();cancelTimer();try{let img;try{await openCamera();img=capture();}catch(cameraError){const unavailable=['NotReadableError','TrackStartError','AbortError','NotFoundError','OverconstrainedError'].includes(cameraError.name);if(unavailable){add('system','📷 Камера недоступна (возможно, занята звонком). Пропускаю проверку; попробую снова по расписанию.');status('Камера занята — проверка пропущена');if(breakRequired){breakAwaySince=null;breakLastVerified=null;add('system','⏸️ Не могу подтвердить непрерывный перерыв без камеры. Отсчёт отсутствия сброшен.')}return;}throw cameraError;}finally{closeCamera();}latestImage=img;add('you','Проверка осанки 📸',img);status('Анализирую снимок…');const raw=await askAPI([{type:'input_text',text:'Проверь осанку на этом фото. Верни JSON по инструкции.'},{type:'input_image',image_url:img,detail:'low'}],SYSTEM);const result=parsePhoto(raw);away=result.state==='away';processPresence(result.state);const badge={good:'✅',bad:'🚨',away:'🚶',unknown:'🤔'}[result.state];add('bot',badge+' '+(result.comment||result.issue||result.state));if(result.state==='bad')notifyBad(result.comment||result.issue);$('summary').textContent={good:'✅ Поза выглядит нормально',bad:'🚨 Обнаружена плохая осанка',away:'🚶 Никого нет — проверки реже',unknown:'🤔 Невозможно уверенно оценить'}[result.state];status(away?'Отошёл от камеры':running?'Наблюдение активно':'Ручная проверка завершена');}catch(e){add('system','Ошибка: '+e.message);status('Ошибка проверки');}finally{closeCamera();busy=false;setControls();if(running)schedule(nextCheckSeconds())}}
+async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=true;setControls();cancelTimer();try{let img;try{await openCamera();img=capture();}catch(cameraError){const unavailable=['NotReadableError','TrackStartError','AbortError','NotFoundError','OverconstrainedError'].includes(cameraError.name);if(unavailable){add('system','📷 Камера недоступна (возможно, занята звонком). Пропускаю проверку; попробую снова по расписанию.');status('Камера занята — проверка пропущена');if(breakRequired){breakAwaySince=null;breakLastVerified=null;add('system','⏸️ Не могу подтвердить непрерывный перерыв без камеры. Отсчёт отсутствия сброшен.')}return;}throw cameraError;}finally{closeCamera();}latestImage=img;add('you','Проверка осанки 📸',img);status('Анализирую снимок…');const raw=await askAPI([{type:'input_text',text:'Проверь осанку на этом фото. Верни JSON по инструкции.'},{type:'input_image',image_url:img,detail:'low'}],SYSTEM);const result=parsePhoto(raw);away=result.state==='away';processPresence(result.state);const badge={good:'✅',bad:'🚨',away:'🚶',unknown:'🤔'}[result.state];const gameText=awardGame(result.state,automatic&&running,rewardSeconds);add('bot',badge+' '+(result.comment||result.issue||result.state)+(gameText?'\n'+gameText:''));if(result.state==='bad')notifyBad(result.comment||result.issue);$('summary').textContent={good:'✅ Поза выглядит нормально',bad:'🚨 Обнаружена плохая осанка',away:'🚶 Никого нет — проверки реже',unknown:'🤔 Невозможно уверенно оценить'}[result.state];status(away?'Отошёл от камеры':running?'Наблюдение активно':'Ручная проверка завершена');}catch(e){add('system','Ошибка: '+e.message);status('Ошибка проверки');}finally{closeCamera();busy=false;setControls();if(running)schedule(nextCheckSeconds())}}
 $('start').onclick=async()=>{if(running)return;try{if(!$('key').value.trim())throw Error('Сначала введи API key');running=true;away=false;resetBreakTracking();status('Наблюдение активно');setControls();await checkPhoto();}catch(e){add('system','Не удалось запустить: '+e.message);running=false;setControls();closeCamera()}};
 $('stop').onclick=()=>{running=false;resetBreakTracking();cancelTimer();closeCamera();status('Остановлено');$('summary').textContent='Наблюдение остановлено';setControls();add('system','Наблюдение остановлено.')};
 $('check').onclick=()=>checkPhoto();
