@@ -12,7 +12,7 @@
 <div class="app">
 <aside>
  <div class="brand">🦐 Креветка-контроль</div><div class="sub">ИИ следит, чтобы ты не превратился в знак вопроса.</div>
- <div class="field"><label for="key">OpenAI API key (не сохраняется)</label><input id="key" type="password" autocomplete="off" placeholder="sk-..."></div>
+ <div class="field"><label for="key">OpenAI API key (сохраняется в браузере)</label><input id="key" type="password" autocomplete="off" placeholder="sk-..."></div>
  <div class="field"><label for="model">Модель</label><input id="model" value="gpt-6-luna" spellcheck="false"></div>
  <div class="camera"><video id="video" autoplay playsinline muted></video></div>
  <div class="status-row"><span class="status" id="status">● Не запущено</span><span class="pill" id="next">—</span></div>
@@ -23,7 +23,7 @@
  <div class="status-row"><span class="small" id="breakStatus">Разминка: ожидание начала наблюдения</span></div>
  <div class="field"><label for="cooldown">Повторять уведомления не чаще</label><select id="cooldown"><option value="60">1 минуты</option><option value="300" selected>5 минут</option><option value="600">10 минут</option></select></div>
  <button id="notify" style="width:100%">🔔 Разрешить уведомления</button>
- <p class="note">Снимки и чат остаются в этой вкладке до перезагрузки. Фотографии отправляются в OpenAI API. Ключ хранится только в памяти страницы.</p>
+ <p class="note">Снимки и чат остаются в этой вкладке до перезагрузки. Фотографии отправляются в OpenAI API. API-ключ сохраняется в localStorage этого сайта (не шифруется). Не используй на общем компьютере.</p>
  <p class="small">Для камеры надежнее открывать через <code>http://localhost</code>. При фоновой вкладке браузер может замедлять таймеры или приостанавливать камеру. Уведомления зависят от разрешений браузера и ОС.</p>
 </aside>
 <main>
@@ -37,6 +37,9 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const video=$('video'),chat=$('chat');
+const KEY_STORAGE='shrimp-openai-api-key';
+try{$('key').value=localStorage.getItem(KEY_STORAGE)||''}catch(e){console.warn('Unable to read localStorage',e)}
+$('key').addEventListener('input',()=>{try{const value=$('key').value.trim();if(value)localStorage.setItem(KEY_STORAGE,value);else localStorage.removeItem(KEY_STORAGE)}catch(e){console.warn('Unable to save API key',e)}});
 let stream=null,running=false,busy=false,timer=null,nextAt=0,away=false,lastNotify=0,latestImage=null;
 const BREAK_MS=5*60*1000, BREAK_CHECK_SECONDS=30;
 let sittingSince=null, breakRequired=false, breakAwaySince=null, breakLastVerified=null, breakReturnNotified=false;
