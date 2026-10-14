@@ -43,7 +43,7 @@
   <div class="shop-potion" aria-hidden="true">🧪❤️</div>
   <strong>Зелье восстановления</strong>
   <p class="small">Мгновенно восстанавливает 1 сердце (2 половинки). Максимум — 5 сердец. Без инвентаря.</p>
-  <div class="shop-price">🪙 100</div>
+  <div class="shop-price">🪙 50</div>
   <button class="primary" id="buyPotion">Купить и выпить</button>
   <div id="shopHint" class="small" style="margin-top:10px" aria-live="polite"></div>
  </div>
@@ -131,8 +131,8 @@ function renderGame(){
  $('hearts').setAttribute('aria-label','Здоровье '+(game.hp/2)+' из 5');
  $('gold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
  $('shopGold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
- $('buyPotion').disabled=game.hp===MAX_HP||game.gold<100;
- $('shopHint').textContent=game.hp===MAX_HP?'Здоровье уже полное':game.gold<100?'Не хватает '+(100-game.gold)+' золотых':'Восстановит '+Math.min(2,MAX_HP-game.hp)/2+' ❤️';
+ $('buyPotion').disabled=game.hp===MAX_HP||game.gold<50;
+ $('shopHint').textContent=game.hp===MAX_HP?'Здоровье уже полное':game.gold<50?'Не хватает '+(50-game.gold)+' золотых':'Восстановит '+Math.min(2,MAX_HP-game.hp)/2+' ❤️';
  $('healStatus').textContent=game.hp===MAX_HP?'❤️ Здоровье полное':`❤️ ${game.hp/2}/5 · восстановление только зельями`;
 }
 function setShopOpen(open){
@@ -145,11 +145,11 @@ $('shopClose').onclick=()=>setShopOpen(false);
 $('shopOverlay').onclick=()=>setShopOpen(false);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('shop-open'))setShopOpen(false)});
 $('buyPotion').onclick=()=>{
- if(game.hp>=MAX_HP||game.gold<100){renderGame();return}
- game.gold-=100;
+ if(game.hp>=MAX_HP||game.gold<50){renderGame();return}
+ game.gold-=50;
  game.hp=Math.min(MAX_HP,game.hp+2);
  saveGame();renderGame();
- add('bot','🧪 Глоть-глоть! Креветка выпила зелье и восстановила здоровье на '+Math.min(1,(MAX_HP-(game.hp-2))/2)+' ❤️. Потрачено 100 золотых. Осталось '+game.gold+' 🪙.');
+ add('bot','🧪 Глоть-глоть! Креветка выпила зелье и восстановила здоровье на '+Math.min(1,(MAX_HP-(game.hp-2))/2)+' ❤️. Потрачено 50 золотых. Осталось '+game.gold+' 🪙.');
 };
 function awardGame(state,eligible,seconds){
  if(state==='bad'){
