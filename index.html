@@ -111,13 +111,14 @@ function restorePostureSession(){
 }
 let context=[]; // Only short text conversation, not all screenshots
 const GAME_KEY='shrimp-rpg-v1',MAX_HP=10;
-let game={hp:MAX_HP,gold:0,streakLevel:0,lastGoodAt:null};
+let game={hp:MAX_HP,gold:0,streakLevel:0,bestStreak:0,lastGoodAt:null};
 try{
  const stored=JSON.parse(localStorage.getItem(GAME_KEY)||'null');
  if(stored&&Number.isFinite(stored.hp)&&Number.isFinite(stored.gold)){
   game.hp=Math.max(0,Math.min(MAX_HP,Math.floor(stored.hp)));
   game.gold=Math.max(0,Math.floor(stored.gold));
   game.streakLevel=Number.isSafeInteger(stored.streakLevel)?Math.max(0,stored.streakLevel):0;
+  game.bestStreak=Number.isSafeInteger(stored.bestStreak)?Math.max(game.streakLevel,stored.bestStreak):game.streakLevel;
   game.lastGoodAt=Number.isFinite(stored.lastGoodAt)?stored.lastGoodAt:null;
   if(!game.lastGoodAt||Date.now()-game.lastGoodAt>Math.max(180000,Number($('interval').value)*2000+30000)){game.streakLevel=0;game.lastGoodAt=null}
  }
@@ -134,7 +135,7 @@ function renderGame(){
  $('hearts').setAttribute('aria-label','Здоровье '+(game.hp/2)+' из 5');
  $('gold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
  const bonus=Math.min(3,Math.floor(game.streakLevel/5));
- $('streakStatus').textContent='🔥 Серия: '+game.streakLevel+' · бонус +'+bonus+' 🪙 за выплату';
+ $('streakStatus').textContent='🔥 Серия: '+game.streakLevel+' · 🏆 Рекорд: '+game.bestStreak+' · бонус +'+bonus+' 🪙 за выплату';
  $('shopGold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
  $('buyPotion').disabled=game.hp===MAX_HP||game.gold<50;
  $('shopHint').textContent=game.hp===MAX_HP?'Здоровье уже полное':game.gold<50?'Не хватает '+(50-game.gold)+' золотых':'Восстановит '+Math.min(2,MAX_HP-game.hp)/2+' ❤️';
@@ -171,6 +172,7 @@ function awardGame(state,eligible,seconds){
   const timely=game.lastGoodAt!==null&&now-game.lastGoodAt<=Math.max(90000,seconds*2000+30000);
   game.streakLevel=(timely?game.streakLevel:0)+1;
   game.lastGoodAt=now;
+  game.bestStreak=Math.max(game.bestStreak,game.streakLevel);
   const bonus=Math.min(3,Math.floor(game.streakLevel/5));
   const base=Math.floor(seconds/30);
   const amount=base+bonus;
