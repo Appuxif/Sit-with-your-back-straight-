@@ -111,15 +111,15 @@ function restorePostureSession(){
 }
 let context=[]; // Only short text conversation, not all screenshots
 const GAME_KEY='shrimp-rpg-v1',MAX_HP=10;
-let game={hp:MAX_HP,gold:0,streakSeconds:0,lastGoodAt:null};
+let game={hp:MAX_HP,gold:0,streakLevel:0,lastGoodAt:null};
 try{
  const stored=JSON.parse(localStorage.getItem(GAME_KEY)||'null');
  if(stored&&Number.isFinite(stored.hp)&&Number.isFinite(stored.gold)){
   game.hp=Math.max(0,Math.min(MAX_HP,Math.floor(stored.hp)));
   game.gold=Math.max(0,Math.floor(stored.gold));
-  game.streakSeconds=Number.isFinite(stored.streakSeconds)?Math.max(0,Math.min(900,stored.streakSeconds)):0;
+  game.streakLevel=Number.isSafeInteger(stored.streakLevel)?Math.max(0,stored.streakLevel):0;
   game.lastGoodAt=Number.isFinite(stored.lastGoodAt)?stored.lastGoodAt:null;
-  if(!game.lastGoodAt||Date.now()-game.lastGoodAt>180000){game.streakSeconds=0;game.lastGoodAt=null}
+  if(!game.lastGoodAt||Date.now()-game.lastGoodAt>Math.max(180000,Number($('interval').value)*2000+30000)){game.streakLevel=0;game.lastGoodAt=null}
  }
 }catch(e){console.warn('Game load failed',e)}
 function saveGame(){try{localStorage.setItem(GAME_KEY,JSON.stringify(game))}catch(e){console.warn('Game save failed',e)}}
@@ -133,8 +133,8 @@ function renderGame(){
  }
  $('hearts').setAttribute('aria-label','Здоровье '+(game.hp/2)+' из 5');
  $('gold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
- const level=Math.min(3,Math.floor(game.streakSeconds/300));
- $('streakStatus').textContent='🔥 Серия: '+level+'/3 · '+Math.floor(game.streakSeconds/60)+' мин ровно · бонус +'+level+' 🪙 за выплату';
+ const bonus=Math.min(3,Math.floor(game.streakLevel/5));
+ $('streakStatus').textContent='🔥 Серия: '+game.streakLevel+' · бонус +'+bonus+' 🪙 за выплату';
  $('shopGold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
  $('buyPotion').disabled=game.hp===MAX_HP||game.gold<50;
  $('shopHint').textContent=game.hp===MAX_HP?'Здоровье уже полное':game.gold<50?'Не хватает '+(50-game.gold)+' золотых':'Восстановит '+Math.min(2,MAX_HP-game.hp)/2+' ❤️';
@@ -157,7 +157,7 @@ $('buyPotion').onclick=()=>{
  add('bot','🧪 Глоть-глоть! Креветка выпила зелье и восстановила здоровье на '+Math.min(1,(MAX_HP-(game.hp-2))/2)+' ❤️. Потрачено 50 золотых. Осталось '+game.gold+' 🪙.');
 };
 function resetStreak(){
- if(game.streakSeconds||game.lastGoodAt){game.streakSeconds=0;game.lastGoodAt=null;saveGame();renderGame()}
+ if(game.streakLevel||game.lastGoodAt){game.streakLevel=0;game.lastGoodAt=null;saveGame();renderGame()}
 }
 function awardGame(state,eligible,seconds){
  if(state==='bad'||state==='away')resetStreak();
@@ -168,15 +168,20 @@ function awardGame(state,eligible,seconds){
  }
  if(state==='good'&&eligible){
   const now=Date.now();
-  if(game.lastGoodAt!==null&&now-game.lastGoodAt<=Math.max(90000,seconds*2000+30000)){
-   game.streakSeconds=Math.min(900,game.streakSeconds+seconds);
-  }else game.streakSeconds=0;
+  const timely=game.lastGoodAt!==null&&now-game.lastGoodAt<=Math.max(90000,seconds*2000+30000);
+  game.streakLevel=(timely?game.streakLevel:0)+1;
   game.lastGoodAt=now;
-  const level=Math.min(3,Math.floor(game.streakSeconds/300));
+  const bonus=Math.min(3,Math.floor(game.streakLevel/5));
   const base=Math.floor(seconds/30);
-  const amount=base+level;
-  if(amount>0){game.gold+=amount;saveGame();renderGame();return '🪙 +'+base+' за осанку'+(level?' и +'+level+' за серию 🔥':'')+'. Всего: '+game.gold+' золотых.'}
-  saveGame();
+  const amount=base+bonus;
+  game.gold+=amount;saveGame();renderGame();
+  const jokes={
+   5:'🦐 Уже 5 успешных проверок подряд! Позвоночник наконец-то получил должностную инструкцию. +1 к добыче!',
+   10:'🔥 Десятая проверка подряд! Креветка подозревает, что тебя привязали к спинке стула. +2 к добыче!',
+   15:'👑 Пятнадцать проверок! Твой позвоночник получил легендарный статус. Бонус +3 — потолок, но серия продолжает расти!'
+  };
+  const joke=jokes[game.streakLevel]||(game.streakLevel>15&&game.streakLevel%10===0?'🦐 Серия '+game.streakLevel+'! Это уже не осанка, а архитектурный памятник. Бонус +3 остаётся максимальным.':'');
+  return '🪙 +'+base+' за осанку'+(bonus?' и +'+bonus+' за серию 🔥':'')+'. Всего: '+game.gold+' золотых.'+(joke?'\n'+joke:'');
  }
  renderGame();return '';
 }
@@ -189,7 +194,7 @@ const historyDB=typeof indexedDB!=='undefined'?openHistoryDB().catch(e=>{console
 async function dbRead(){const db=await historyDB;if(!db)return [];return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly');const request=tx.objectStore(DB_STORE).get('messages');request.onsuccess=()=>resolve(request.result||[]);request.onerror=()=>reject(request.error)})}
 async function dbWrite(snapshot){const db=await historyDB;if(!db)return;return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(snapshot,'messages');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}
 function persistHistory(){if(!historyReady)return;const snapshot=messages.slice();writeChain=writeChain.then(()=>dbWrite(snapshot)).catch(e=>console.warn('Could not save chat history',e))}
-const SYSTEM=`Ты — дружелюбный, слегка язвительный русскоязычный инспектор осанки по имени Креветка-контроль. Оцениваешь фотографии пользователя за рабочим столом. Не делай медицинских диагнозов. Учитывай, что одно изображение не позволяет точно судить об изгибе позвоночника. В ответах на ФОТО возвращай ТОЛЬКО корректный JSON без markdown: {"state":"good|bad|away|unknown","issue":"кратко, что не так (или пустая строка)","comment":"короткое живое сообщение на русском, максимум 2 предложения"}. away — в кадре нет человека; unknown — не видно позу или не уверен; bad — явно видна плохая поза (голова на руке, заметный перекос, сильный наклон, сгорбленность). Не придирайся к обычным небольшим изменениям положения. При good можно похвалить. При away сообщи, что человек отошёл. В игре у пользователя 5 сердец (по две половинки) и золото. Серия успешных проверок осанки: каждые 5 подтверждённых минут +1 к бонусу за выплату, максимум +3; при плохой осанке или уходе серия обнуляется. Не придумывай точные бонусы. За подтверждённую плохую осанку снимается половинка сердца, за хорошую осанку при плановой проверке начисляется по 1 золотому за каждые 30 секунд планового интервала. Не придумывай изменения баланса в своём комментарии: точную награду или штраф добавит приложение после анализа. Для обычных ТЕКСТОВЫХ сообщений отвечай естественно, кратко, без JSON, и учитывай предыдущие текстовые реплики.`;
+const SYSTEM=`Ты — дружелюбный, слегка язвительный русскоязычный инспектор осанки по имени Креветка-контроль. Оцениваешь фотографии пользователя за рабочим столом. Не делай медицинских диагнозов. Учитывай, что одно изображение не позволяет точно судить об изгибе позвоночника. В ответах на ФОТО возвращай ТОЛЬКО корректный JSON без markdown: {"state":"good|bad|away|unknown","issue":"кратко, что не так (или пустая строка)","comment":"короткое живое сообщение на русском, максимум 2 предложения"}. away — в кадре нет человека; unknown — не видно позу или не уверен; bad — явно видна плохая поза (голова на руке, заметный перекос, сильный наклон, сгорбленность). Не придирайся к обычным небольшим изменениям положения. При good можно похвалить. При away сообщи, что человек отошёл. В игре у пользователя 5 сердец (по две половинки) и золото. Серия растёт на один уровень за каждую успешную плановую проверку, без максимального уровня. За каждые 5 уровней бонус +1 золото к выплате, максимум +3. При плохой осанке или уходе серия обнуляется. Не придумывай точные бонусы. За подтверждённую плохую осанку снимается половинка сердца, за хорошую осанку при плановой проверке начисляется по 1 золотому за каждые 30 секунд планового интервала. Не придумывай изменения баланса в своём комментарии: точную награду или штраф добавит приложение после анализа. Для обычных ТЕКСТОВЫХ сообщений отвечай естественно, кратко, без JSON, и учитывай предыдущие текстовые реплики.`;
 function time(){return new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 function add(role,text,img=null,restored=null){
  const msg=restored||{role,text,img,at:Date.now()};
