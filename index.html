@@ -120,7 +120,7 @@ try{
   game.streakLevel=Number.isSafeInteger(stored.streakLevel)?Math.max(0,stored.streakLevel):0;
   game.bestStreak=Number.isSafeInteger(stored.bestStreak)?Math.max(game.streakLevel,stored.bestStreak):game.streakLevel;
   game.lastGoodAt=Number.isFinite(stored.lastGoodAt)?stored.lastGoodAt:null;
-  if(!game.lastGoodAt||Date.now()-game.lastGoodAt>Math.max(180000,Number($('interval').value)*2000+30000)){game.streakLevel=0;game.lastGoodAt=null}
+  // Pauses and reloads preserve the streak.
  }
 }catch(e){console.warn('Game load failed',e)}
 function saveGame(){try{localStorage.setItem(GAME_KEY,JSON.stringify(game))}catch(e){console.warn('Game save failed',e)}}
@@ -161,7 +161,7 @@ function resetStreak(){
  if(game.streakLevel||game.lastGoodAt){game.streakLevel=0;game.lastGoodAt=null;saveGame();renderGame()}
 }
 function awardGame(state,eligible,seconds){
- if(state==='bad'||state==='away')resetStreak();
+ if(state==='bad')resetStreak();
  if(state==='bad'){
   game.hp=Math.max(0,game.hp-1);
   saveGame();renderGame();
@@ -169,8 +169,7 @@ function awardGame(state,eligible,seconds){
  }
  if(state==='good'&&eligible){
   const now=Date.now();
-  const timely=game.lastGoodAt!==null&&now-game.lastGoodAt<=Math.max(90000,seconds*2000+30000);
-  game.streakLevel=(timely?game.streakLevel:0)+1;
+  game.streakLevel+=1;
   game.lastGoodAt=now;
   game.bestStreak=Math.max(game.bestStreak,game.streakLevel);
   const bonus=Math.min(3,Math.floor(game.streakLevel/5));
@@ -267,7 +266,7 @@ function processPresence(state){
  }else if(present){
   if(sittingSince===null)sittingSince=now;
   if(now-sittingSince>=Number($('sitlimit').value)*60000){
-   breakRequired=true;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;resetStreak();
+   breakRequired=true;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;
    breakMessage(`🧘 Сидишь уже ${$('sitlimit').value} минут! Встань, отойди от камеры и разомнись ${breakMinutes()} минут. Я проверю!`)
   }
  }else if(state==='away'){
@@ -293,7 +292,6 @@ async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=t
  }
  away=result.state==='away';
  processPresence(result.state);
- if(checkingBreak||breakRequired)resetStreak();
  if(checkingBreak){
    if(result.state==='away'&&breakRequired)add('bot',`🚶 Тебя нет в кадре — отлично! Продолжай разминку, нужно ${breakMinutes()} минут.`);
    else if(result.state==='unknown')add('bot','🤔 Не уверен, что в кадре человек. Штрафа нет, продолжу наблюдение; эта проверка не подтверждает отсутствие.');
