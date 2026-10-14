@@ -14,7 +14,7 @@
  <div class="brand">🦐 Креветка-контроль</div><div class="sub">ИИ следит, чтобы ты не превратился в знак вопроса.</div>
  <div class="field"><label for="key">OpenAI API key (сохраняется в браузере)</label><input id="key" type="password" autocomplete="off" placeholder="sk-..."></div>
  <div class="field"><label for="model">Модель</label><input id="model" value="gpt-6-luna" spellcheck="false"></div>
- <div class="game"><div style="font-weight:700">🎮 Креветка RPG</div><div class="hearts" id="hearts" aria-label="Здоровье"></div><div class="small" id="healStatus"></div><div class="gold" id="gold">🪙 0</div><div class="small">+1 золото за 30 сек хорошей осанки</div></div>
+ <div class="game"><div style="font-weight:700">🎮 Креветка RPG</div><div class="hearts" id="hearts" aria-label="Здоровье"></div><div class="small" id="healStatus"></div><div class="gold" id="gold">🪙 0</div><div class="small">+1 золото за 30 сек хорошей осанки</div><div class="small" id="streakStatus" style="margin-top:9px">🔥 Серия: 0/3</div></div>
  <video id="video" autoplay playsinline muted style="display:none" aria-hidden="true"></video>
  <div class="status-row"><span class="status" id="status">● Не запущено</span><span class="pill" id="next">—</span></div>
  <div class="buttons"><button id="start" class="primary">▶ Запустить наблюдение</button><button id="check">📸 Проверить сейчас</button><button id="stop" class="danger" disabled>■ Стоп</button></div>
@@ -111,12 +111,15 @@ function restorePostureSession(){
 }
 let context=[]; // Only short text conversation, not all screenshots
 const GAME_KEY='shrimp-rpg-v1',MAX_HP=10;
-let game={hp:MAX_HP,gold:0};
+let game={hp:MAX_HP,gold:0,streakSeconds:0,lastGoodAt:null};
 try{
  const stored=JSON.parse(localStorage.getItem(GAME_KEY)||'null');
  if(stored&&Number.isFinite(stored.hp)&&Number.isFinite(stored.gold)){
   game.hp=Math.max(0,Math.min(MAX_HP,Math.floor(stored.hp)));
   game.gold=Math.max(0,Math.floor(stored.gold));
+  game.streakSeconds=Number.isFinite(stored.streakSeconds)?Math.max(0,Math.min(900,stored.streakSeconds)):0;
+  game.lastGoodAt=Number.isFinite(stored.lastGoodAt)?stored.lastGoodAt:null;
+  if(!game.lastGoodAt||Date.now()-game.lastGoodAt>180000){game.streakSeconds=0;game.lastGoodAt=null}
  }
 }catch(e){console.warn('Game load failed',e)}
 function saveGame(){try{localStorage.setItem(GAME_KEY,JSON.stringify(game))}catch(e){console.warn('Game save failed',e)}}
@@ -130,6 +133,8 @@ function renderGame(){
  }
  $('hearts').setAttribute('aria-label','Здоровье '+(game.hp/2)+' из 5');
  $('gold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
+ const level=Math.min(3,Math.floor(game.streakSeconds/300));
+ $('streakStatus').textContent='🔥 Серия: '+level+'/3 · '+Math.floor(game.streakSeconds/60)+' мин ровно · бонус +'+level+' 🪙 за выплату';
  $('shopGold').textContent='🪙 '+game.gold.toLocaleString('ru-RU');
  $('buyPotion').disabled=game.hp===MAX_HP||game.gold<50;
  $('shopHint').textContent=game.hp===MAX_HP?'Здоровье уже полное':game.gold<50?'Не хватает '+(50-game.gold)+' золотых':'Восстановит '+Math.min(2,MAX_HP-game.hp)/2+' ❤️';
@@ -151,15 +156,27 @@ $('buyPotion').onclick=()=>{
  saveGame();renderGame();
  add('bot','🧪 Глоть-глоть! Креветка выпила зелье и восстановила здоровье на '+Math.min(1,(MAX_HP-(game.hp-2))/2)+' ❤️. Потрачено 50 золотых. Осталось '+game.gold+' 🪙.');
 };
+function resetStreak(){
+ if(game.streakSeconds||game.lastGoodAt){game.streakSeconds=0;game.lastGoodAt=null;saveGame();renderGame()}
+}
 function awardGame(state,eligible,seconds){
+ if(state==='bad'||state==='away')resetStreak();
  if(state==='bad'){
   game.hp=Math.max(0,game.hp-1);
   saveGame();renderGame();
   return '💔 Твоё здоровье пострадало: −½ сердца. Сейчас '+game.hp/2+'/5 ❤️.';
  }
  if(state==='good'&&eligible){
-  const amount=Math.floor(seconds/30);
-  if(amount>0){game.gold+=amount;saveGame();renderGame();return '🪙 Добавил тебе на счёт '+amount+' золотых. Всего: '+game.gold+'.'}
+  const now=Date.now();
+  if(game.lastGoodAt!==null&&now-game.lastGoodAt<=Math.max(90000,seconds*2000+30000)){
+   game.streakSeconds=Math.min(900,game.streakSeconds+seconds);
+  }else game.streakSeconds=0;
+  game.lastGoodAt=now;
+  const level=Math.min(3,Math.floor(game.streakSeconds/300));
+  const base=Math.floor(seconds/30);
+  const amount=base+level;
+  if(amount>0){game.gold+=amount;saveGame();renderGame();return '🪙 +'+base+' за осанку'+(level?' и +'+level+' за серию 🔥':'')+'. Всего: '+game.gold+' золотых.'}
+  saveGame();
  }
  renderGame();return '';
 }
@@ -172,7 +189,7 @@ const historyDB=typeof indexedDB!=='undefined'?openHistoryDB().catch(e=>{console
 async function dbRead(){const db=await historyDB;if(!db)return [];return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly');const request=tx.objectStore(DB_STORE).get('messages');request.onsuccess=()=>resolve(request.result||[]);request.onerror=()=>reject(request.error)})}
 async function dbWrite(snapshot){const db=await historyDB;if(!db)return;return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(snapshot,'messages');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}
 function persistHistory(){if(!historyReady)return;const snapshot=messages.slice();writeChain=writeChain.then(()=>dbWrite(snapshot)).catch(e=>console.warn('Could not save chat history',e))}
-const SYSTEM=`Ты — дружелюбный, слегка язвительный русскоязычный инспектор осанки по имени Креветка-контроль. Оцениваешь фотографии пользователя за рабочим столом. Не делай медицинских диагнозов. Учитывай, что одно изображение не позволяет точно судить об изгибе позвоночника. В ответах на ФОТО возвращай ТОЛЬКО корректный JSON без markdown: {"state":"good|bad|away|unknown","issue":"кратко, что не так (или пустая строка)","comment":"короткое живое сообщение на русском, максимум 2 предложения"}. away — в кадре нет человека; unknown — не видно позу или не уверен; bad — явно видна плохая поза (голова на руке, заметный перекос, сильный наклон, сгорбленность). Не придирайся к обычным небольшим изменениям положения. При good можно похвалить. При away сообщи, что человек отошёл. В игре у пользователя 5 сердец (по две половинки) и золото. За подтверждённую плохую осанку снимается половинка сердца, за хорошую осанку при плановой проверке начисляется по 1 золотому за каждые 30 секунд планового интервала. Не придумывай изменения баланса в своём комментарии: точную награду или штраф добавит приложение после анализа. Для обычных ТЕКСТОВЫХ сообщений отвечай естественно, кратко, без JSON, и учитывай предыдущие текстовые реплики.`;
+const SYSTEM=`Ты — дружелюбный, слегка язвительный русскоязычный инспектор осанки по имени Креветка-контроль. Оцениваешь фотографии пользователя за рабочим столом. Не делай медицинских диагнозов. Учитывай, что одно изображение не позволяет точно судить об изгибе позвоночника. В ответах на ФОТО возвращай ТОЛЬКО корректный JSON без markdown: {"state":"good|bad|away|unknown","issue":"кратко, что не так (или пустая строка)","comment":"короткое живое сообщение на русском, максимум 2 предложения"}. away — в кадре нет человека; unknown — не видно позу или не уверен; bad — явно видна плохая поза (голова на руке, заметный перекос, сильный наклон, сгорбленность). Не придирайся к обычным небольшим изменениям положения. При good можно похвалить. При away сообщи, что человек отошёл. В игре у пользователя 5 сердец (по две половинки) и золото. Серия успешных проверок осанки: каждые 5 подтверждённых минут +1 к бонусу за выплату, максимум +3; при плохой осанке или уходе серия обнуляется. Не придумывай точные бонусы. За подтверждённую плохую осанку снимается половинка сердца, за хорошую осанку при плановой проверке начисляется по 1 золотому за каждые 30 секунд планового интервала. Не придумывай изменения баланса в своём комментарии: точную награду или штраф добавит приложение после анализа. Для обычных ТЕКСТОВЫХ сообщений отвечай естественно, кратко, без JSON, и учитывай предыдущие текстовые реплики.`;
 function time(){return new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
 function add(role,text,img=null,restored=null){
  const msg=restored||{role,text,img,at:Date.now()};
@@ -243,7 +260,7 @@ function processPresence(state){
  }else if(present){
   if(sittingSince===null)sittingSince=now;
   if(now-sittingSince>=Number($('sitlimit').value)*60000){
-   breakRequired=true;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;
+   breakRequired=true;breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;resetStreak();
    breakMessage(`🧘 Сидишь уже ${$('sitlimit').value} минут! Встань, отойди от камеры и разомнись ${breakMinutes()} минут. Я проверю!`)
   }
  }else if(state==='away'){
@@ -264,6 +281,7 @@ async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=t
  const raw=await askAPI([{type:'input_text',text:task},{type:'input_image',image_url:img,detail:'low'}],SYSTEM+(checkingBreak?' Во время обязательной разминки только определяй наличие человека: away, good или unknown; не оценивай осанку.':''));
  const result=parsePhoto(raw);away=result.state==='away';
  processPresence(result.state);
+ if(checkingBreak||breakRequired)resetStreak();
  if(checkingBreak){
    if(result.state==='away'&&breakRequired)add('bot',`🚶 Тебя нет в кадре — отлично! Продолжай разминку, нужно ${breakMinutes()} минут.`);
    else if(result.state==='unknown')add('bot','🤔 Не могу определить, отошёл ли ты. Перерыв пока не засчитывается.');
