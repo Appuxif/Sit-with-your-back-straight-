@@ -235,7 +235,7 @@ function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream
 function capture(){if(!stream||!video.videoWidth)throw Error('Нет изображения с камеры');const c=$('canvas');const max=720;const scale=Math.min(1,max/video.videoWidth);c.width=Math.round(video.videoWidth*scale);c.height=Math.round(video.videoHeight*scale);const ctx=c.getContext('2d');ctx.translate(c.width,0);ctx.scale(-1,1);ctx.drawImage(video,0,0,c.width,c.height);ctx.setTransform(1,0,0,1,0,0);return c.toDataURL('image/jpeg',0.72)}
 function responseText(data){if(typeof data.output_text==='string')return data.output_text;return (data.output||[]).flatMap(o=>(o.content||[]).filter(c=>c.type==='output_text').map(c=>c.text||'')).join('\n')}
 async function askAPI(content,instructions){const key=$('key').value.trim();if(!key)throw Error('Введи OpenAI API key');const model=$('model').value.trim();if(!model)throw Error('Укажи модель');const body={model,store:false,instructions, input:[...context.slice(-8),{role:'user',content}],max_output_tokens:250};const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(body)});let data;try{data=await response.json()}catch{throw Error('Ответ сервера не JSON (HTTP '+response.status+')')}if(!response.ok)throw Error(data.error?.message||'HTTP '+response.status);const txt=responseText(data).trim();if(!txt)throw Error('Модель вернула пустой ответ'+(data.status==='incomplete'?' (лимит output токенов)':''));return txt}
-function parsePhoto(text){let cleaned=text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();let obj;try{obj=JSON.parse(cleaned)}catch{const match=cleaned.match(/\{[\s\S]*\}/);if(match)try{obj=JSON.parse(match[0])}catch{}}if(!obj||!['good','bad','away','unknown'].includes(obj.state))return{state:'unknown',comment:text};return{state:obj.state,comment:String(obj.comment||''),issue:String(obj.issue||'')}}
+function parsePhoto(text){let cleaned=text.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();let obj;try{obj=JSON.parse(cleaned)}catch{const match=cleaned.match(/\{[\s\S]*\}/);if(match)try{obj=JSON.parse(match[0])}catch{}}if(!obj||!['good','bad','away','unknown'].includes(obj.state))return{state:'unknown',comment:text};return{state:obj.state,comment:String(obj.comment||''),issue:String(obj.issue||''),presence_confidence:typeof obj.presence_confidence==='number'?obj.presence_confidence:null}}
 function breakMessage(text, title='🚶 Пора размяться!', tag='break-alert'){
  add('bot',text);
  if('Notification' in window&&Notification.permission==='granted')try{new Notification(title,{body:text,tag})}catch(e){console.warn('Notification:',e)}
@@ -282,14 +282,19 @@ function breakReminder(){
 function nextCheckSeconds(){return breakRequired?BREAK_CHECK_SECONDS:(away?Number($('away').value):Number($('interval').value))}
 function notifyBad(text){const now=Date.now();if(now-lastNotify<Number($('cooldown').value)*1000)return;lastNotify=now;if('Notification' in window&&Notification.permission==='granted'){try{new Notification('🦐 Выпрямись!',{body:text||'Проверь осанку',tag:'posture-alert'})}catch(e){console.warn('Notification:',e)}}}
 async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=true;setControls();cancelTimer();try{let img;try{await openCamera();img=capture();}catch(cameraError){const unavailable=['NotReadableError','TrackStartError','AbortError','NotFoundError','OverconstrainedError'].includes(cameraError.name);if(unavailable){add('system','📷 Камера недоступна (возможно, занята звонком). Пропускаю проверку; попробую снова по расписанию.');status('Камера занята — проверка пропущена');if(breakRequired){breakAwaySince=null;breakLastVerified=null;savePostureSession();add('system','⏸️ Не могу подтвердить непрерывный перерыв без камеры. Отсчёт отсутствия сброшен.')}return;}throw cameraError;}finally{closeCamera();}latestImage=img;add('you','Проверка осанки 📸',img);status('Анализирую снимок…');const checkingBreak=breakRequired;
- const task=checkingBreak?'Сейчас обязательная разминка. Определи, есть ли человек в кадре. Верни JSON с state=away если человека нет, state=good если человек виден, state=unknown если не уверен. Не оценивай осанку.':'Проверь осанку на этом фото. Верни JSON по инструкции.';
- const raw=await askAPI([{type:'input_text',text:task},{type:'input_image',image_url:img,detail:'low'}],SYSTEM+(checkingBreak?' Во время обязательной разминки только определяй наличие человека: away, good или unknown; не оценивай осанку.':''));
- const result=parsePhoto(raw);away=result.state==='away';
+ const task=checkingBreak?'Обязательная разминка: проверяй ТОЛЬКО присутствие реального человека. Пустой стул, одежда на стуле, подушки, мебель, отражения и силуэты предметов НЕ человек. Если человека нет — state=away, если человек достоверно виден — state=good, при любых сомнениях — state=unknown. Добавь поле presence_confidence (число 0..1): уверенность именно в присутствии человека. При state=good укажи высокую уверенность только если отчётливо видно настоящее человеческое тело/лицо. Не оценивай осанку. Верни только JSON.':'Проверь осанку на этом фото. Верни JSON по инструкции.';
+ const raw=await askAPI([{type:'input_text',text:task},{type:'input_image',image_url:img,detail:'low'}],SYSTEM+(checkingBreak?' Правило режима разминки имеет приоритет над обычной оценкой осанки. Не принимай одежду на стуле, подушки или мебель за человека. Добавь числовое поле presence_confidence от 0 до 1.':''));
+ const result=parsePhoto(raw);
+ if(checkingBreak&&result.state!=='away'){
+  // Positive identification is required to interrupt a break or impose a fine.
+  if(result.state!=='good'||result.presence_confidence===null||result.presence_confidence<0.9)result.state='unknown';
+ }
+ away=result.state==='away';
  processPresence(result.state);
  if(checkingBreak||breakRequired)resetStreak();
  if(checkingBreak){
    if(result.state==='away'&&breakRequired)add('bot',`🚶 Тебя нет в кадре — отлично! Продолжай разминку, нужно ${breakMinutes()} минут.`);
-   else if(result.state==='unknown')add('bot','🤔 Не могу определить, отошёл ли ты. Перерыв пока не засчитывается.');
+   else if(result.state==='unknown')add('bot','🤔 Не уверен, что в кадре человек. Штрафа нет, продолжу наблюдение; эта проверка не подтверждает отсутствие.');
    else if(result.state!=='away'&&result.state!=='unknown'&&breakRequired&&breakAwaySince===null){
  if(automatic&&running){
   const fine=Math.min(20,game.gold);
