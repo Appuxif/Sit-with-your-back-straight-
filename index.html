@@ -103,7 +103,6 @@ function savePostureSession(){
  }))}catch(e){console.warn('Posture session save failed',e)}
 }
 function restorePostureSession(){
- if(!shouldAutoStart())return false;
  try{
   const state=JSON.parse(localStorage.getItem(POSTURE_SESSION_KEY)||'null');
   if(!state||typeof state!=='object')return false;
@@ -352,15 +351,15 @@ async function checkPhoto(automatic=false,rewardSeconds=0){if(busy)return;busy=t
    add('bot',badge+' '+(result.comment||result.issue||result.state)+(gameText?'\n'+gameText:''));
    if(result.state==='bad')notifyBad(result.comment||result.issue);
  }$('summary').textContent=breakRequired?'🧘 Идёт обязательная разминка':{good:'✅ Поза выглядит нормально',bad:'🚨 Обнаружена плохая осанка',away:'🚶 Никого нет — проверки реже',unknown:'🤔 Невозможно уверенно оценить'}[result.state];status(away?'Отошёл от камеры':running?'Наблюдение активно':'Ручная проверка завершена');}catch(e){add('system','Ошибка: '+e.message);status('Ошибка проверки');}finally{closeCamera();busy=false;setControls();if(running)schedule(nextCheckSeconds())}}
-$('start').onclick=async()=>{if(running)return;try{if(!$('key').value.trim())throw Error('Сначала введи API key');running=true;saveRunning(true);away=false;if(!resumedSession)resetBreakTracking();resumedSession=false;status('Наблюдение активно');setControls();await checkPhoto();}catch(e){add('system','Не удалось запустить: '+e.message);running=false;saveRunning(false);setControls();closeCamera()}};
-$('stop').onclick=()=>{running=false;saveRunning(false);resetBreakTracking();cancelTimer();closeCamera();status('Остановлено');$('summary').textContent='Наблюдение остановлено';setControls();add('system','Наблюдение остановлено.')};
+$('start').onclick=async()=>{if(running)return;try{if(!$('key').value.trim())throw Error('Сначала введи API key');running=true;saveRunning(true);away=false;if(breakRequired)add('system','🧘 Обязательная разминка продолжается. Остановка наблюдения её не отменяет!');resumedSession=false;status('Наблюдение активно');setControls();await checkPhoto();}catch(e){add('system','Не удалось запустить: '+e.message);running=false;saveRunning(false);setControls();closeCamera()}};
+$('stop').onclick=()=>{running=false;saveRunning(false);breakAwaySince=null;breakLastVerified=null;breakReturnNotified=false;savePostureSession();breakLabel();cancelTimer();closeCamera();status('Остановлено');$('summary').textContent=breakRequired?'🧘 Разминка обязательна — наблюдение на паузе':'Наблюдение остановлено';setControls();add('system',breakRequired?'⏸️ Наблюдение остановлено. Обязательная разминка сохранена; подтверждение отсутствия начнётся заново при запуске.':'Наблюдение остановлено.')};
 $('check').onclick=()=>checkPhoto();
 $('notify').onclick=async()=>{if(!('Notification' in window)){add('system','Этот браузер не поддерживает уведомления.');return}try{const result=await Notification.requestPermission();add('system',result==='granted'?'Уведомления разрешены 🔔':'Уведомления не разрешены: '+result)}catch(e){add('system','Не удалось запросить разрешение: '+e.message)}};
 $('clear').onclick=()=>{chat.replaceChildren();messages=[];context=[];persistHistory();add('system','История очищена. Следующие снимки появятся здесь.')};
 $('interval').onchange=()=>{if(running&&!busy&&!away&&!breakRequired)schedule(nextCheckSeconds())};$('away').onchange=()=>{if(running&&!busy&&away&&!breakRequired)schedule(nextCheckSeconds())};$('breakDuration').onchange=()=>{breakLabel();if(breakRequired&&breakAwaySince!==null){breakAwaySince=null;breakLastVerified=null;savePostureSession();add('system','⏱️ Длительность разминки изменена — отсчёт подтверждённого отсутствия начнётся заново.')}};$('sitlimit').onchange=()=>{breakLabel();if(sittingSince!==null&&!breakRequired&&Date.now()-sittingSince>=Number($('sitlimit').value)*60000)processPresence('good')};
 $('form').onsubmit=async e=>{e.preventDefault();const input=$('message'),message=input.value.trim();if(!message||busy)return;input.value='';add('you',message);busy=true;setControls();try{const output=await askAPI([{type:'input_text',text:message}],SYSTEM+'\nОтвет на пользовательское текстовое сообщение — только простой текст.');add('bot',output);context.push({role:'user',content:[{type:'input_text',text:message}]},{role:'assistant',content:[{type:'output_text',text:output}]});context=context.slice(-8)}catch(err){add('system','Ошибка чата: '+err.message)}finally{busy=false;setControls()}};
 window.addEventListener('beforeunload',closeCamera);
-restoreHistory().then(()=>{if(shouldAutoStart()){resumedSession=restorePostureSession();if(breakRequired)add('system',`🧘 После перезагрузки обязательная разминка всё ещё нужна! Подтверждение ${breakMinutes()} минут отсутствия начнётся заново.`);else if(resumedSession)add('system','⏱️ Восстановил накопленное время сидения. Время закрытой вкладки не учитывается.');$('start').click()}});
+restoreHistory().then(()=>{resumedSession=restorePostureSession();if(breakRequired)add('system',`🧘 Обязательная разминка сохранена! Подтверждение ${breakMinutes()} минут отсутствия начнётся заново при наблюдении.`);else if(resumedSession)add('system','⏱️ Восстановил накопленное время сидения. Время закрытой вкладки не учитывается.');if(shouldAutoStart())$('start').click();else if(breakRequired)$('summary').textContent='🧘 Разминка обязательна — наблюдение на паузе'});
 </script>
 </body>
 </html>
